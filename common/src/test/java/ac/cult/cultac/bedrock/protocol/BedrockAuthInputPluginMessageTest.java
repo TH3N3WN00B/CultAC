@@ -95,7 +95,9 @@ public final class BedrockAuthInputPluginMessageTest {
         assertEquals(Boolean.TRUE, current.sleeping());
         assertEquals(null, current.crawling());
         for (int version : new int[] {16, 17}) {
-            byte[] older = Arrays.copyOf(encoded, encoded.length - 3);
+            // Version 18 introduced the camera-pose fields and version 19 the
+            // usingItem field; a pre-18 capture ends after `swimming`.
+            byte[] older = Arrays.copyOf(encoded, encoded.length - 4);
             ByteBuffer.wrap(older).putInt(version);
             var decoded = BedrockAuthInputPluginMessage.decodeAcknowledgedMetadata(older);
             assertNotNull(decoded);

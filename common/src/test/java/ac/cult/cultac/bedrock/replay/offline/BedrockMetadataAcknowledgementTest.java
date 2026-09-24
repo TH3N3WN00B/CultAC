@@ -388,9 +388,9 @@ public final class BedrockMetadataAcknowledgementTest {
                 try {
                     var record = tap.getClass().getDeclaredMethod("recordOutboundMetadata", ChannelHandlerContext.class,
                             BedrockPacketWrapper.class, Float.class, Float.class, Boolean.class, Boolean.class, Boolean.class,
-                            Boolean.class, Boolean.class, Boolean.class);
+                            Boolean.class, Boolean.class, Boolean.class, Boolean.class);
                     record.setAccessible(true);
-                    record.invoke(tap, context, source, width, height, gliding, crawling, swimming, sneaking, spinning, sleeping);
+                    record.invoke(tap, context, source, width, height, gliding, crawling, swimming, sneaking, spinning, sleeping, null);
                 } finally {
                     source.release();
                 }

@@ -1,6 +1,7 @@
 package ac.cult.cultac.network.packet;
 
 import ac.cult.cultac.network.event.PacketEvent;
+import ac.cult.cultac.utils.reflection.ReflectionUtils;
 import org.bukkit.inventory.ItemStack;
 import ac.cult.cultac.network.protocol.util.SpigotConversionUtil;
 import ac.cult.cultac.network.protocol.teleport.RelativeFlag;
@@ -787,30 +788,36 @@ public final class NmsPacketUtil {
         if (target == null) {
             throw new IllegalArgumentException("target must not be null");
         }
+        Class<?> targetClass = target.getClass();
         for (String methodName : methodNames) {
-            try {
-                Method method = target.getClass().getMethod(methodName);
-                return method.invoke(target);
-            } catch (NoSuchMethodException ignored) {
+            Method method = ReflectionUtils.getMethodCached(targetClass, methodName);
+            if (method == null) {
                 // Try the accessor name used by another supported server version.
+                continue;
+            }
+            try {
+                return method.invoke(target);
             } catch (IllegalAccessException exception) {
-                throw new IllegalStateException("Unable to access " + target.getClass().getName() + "#" + methodName, exception);
+                throw new IllegalStateException("Unable to access " + targetClass.getName() + "#" + methodName, exception);
             } catch (InvocationTargetException exception) {
                 throw new IllegalStateException("Packet accessor failed", exception.getCause());
             }
         }
-        throw new IllegalStateException("No supported packet accessor on " + target.getClass().getName());
+        throw new IllegalStateException("No supported packet accessor on " + targetClass.getName());
     }
 
     private static @Nullable Object invokeNoArgOrNull(Object target, String... methodNames) {
+        Class<?> targetClass = target.getClass();
         for (String methodName : methodNames) {
-            try {
-                Method method = target.getClass().getMethod(methodName);
-                return method.invoke(target);
-            } catch (NoSuchMethodException ignored) {
+            Method method = ReflectionUtils.getMethodCached(targetClass, methodName);
+            if (method == null) {
                 // Try the accessor name used by another supported server version.
+                continue;
+            }
+            try {
+                return method.invoke(target);
             } catch (IllegalAccessException exception) {
-                throw new IllegalStateException("Unable to access " + target.getClass().getName() + "#" + methodName, exception);
+                throw new IllegalStateException("Unable to access " + targetClass.getName() + "#" + methodName, exception);
             } catch (InvocationTargetException exception) {
                 throw new IllegalStateException("Packet accessor failed", exception.getCause());
             }
@@ -819,20 +826,17 @@ public final class NmsPacketUtil {
     }
 
     public static boolean hasNoArgMethod(Object target, String methodName) {
-        try {
-            target.getClass().getMethod(methodName);
-            return true;
-        } catch (NoSuchMethodException ignored) {
-            return false;
-        }
+        return ReflectionUtils.getMethodCached(target.getClass(), methodName) != null;
     }
 
     private static Object fieldValue(Object target, String fieldName) {
+        Field field = ReflectionUtils.getDeclaredFieldCached(target.getClass(), fieldName);
+        if (field == null) {
+            throw new IllegalStateException("Unable to access " + target.getClass().getName() + "#" + fieldName);
+        }
         try {
-            Field field = target.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
             return field.get(target);
-        } catch (NoSuchFieldException | IllegalAccessException exception) {
+        } catch (IllegalAccessException exception) {
             throw new IllegalStateException("Unable to access " + target.getClass().getName() + "#" + fieldName, exception);
         }
     }
@@ -885,14 +889,17 @@ public final class NmsPacketUtil {
     }
 
     public static boolean booleanValueOrDefault(Object target, boolean defaultValue, String... methodNames) {
+        Class<?> targetClass = target.getClass();
         for (String methodName : methodNames) {
-            try {
-                Method method = target.getClass().getMethod(methodName);
-                return (boolean) method.invoke(target);
-            } catch (NoSuchMethodException ignored) {
+            Method method = ReflectionUtils.getMethodCached(targetClass, methodName);
+            if (method == null) {
                 // Try the accessor name used by another supported server version.
+                continue;
+            }
+            try {
+                return (boolean) method.invoke(target);
             } catch (IllegalAccessException exception) {
-                throw new IllegalStateException("Unable to access " + target.getClass().getName() + "#" + methodName, exception);
+                throw new IllegalStateException("Unable to access " + targetClass.getName() + "#" + methodName, exception);
             } catch (InvocationTargetException exception) {
                 throw new IllegalStateException("Packet accessor failed", exception.getCause());
             }

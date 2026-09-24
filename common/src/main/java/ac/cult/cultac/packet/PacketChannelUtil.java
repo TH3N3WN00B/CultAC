@@ -1,5 +1,6 @@
 package ac.cult.cultac.packet;
 
+import ac.cult.cultac.utils.reflection.ReflectionUtils;
 import io.netty.channel.Channel;
 import net.minecraft.network.protocol.Packet;
 
@@ -27,8 +28,11 @@ public final class PacketChannelUtil {
         if (packet == null) {
             return null;
         }
+        Method getPacket = ReflectionUtils.getMethodCached(packet.getClass(), "getPacket");
+        if (getPacket == null) {
+            return null;
+        }
         try {
-            Method getPacket = packet.getClass().getMethod("getPacket");
             Object candidate = getPacket.invoke(packet);
             return candidate instanceof Packet<?> nmsPacket ? nmsPacket : null;
         } catch (ReflectiveOperationException ignored) {

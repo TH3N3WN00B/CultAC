@@ -2,6 +2,7 @@ package ac.cult.cultac.network.protocol.player;
 
 import ac.cult.cultac.CultAPI;
 import ac.cult.cultac.network.protocol.util.FoliaCompatUtil;
+import ac.cult.cultac.utils.reflection.ReflectionUtils;
 import io.netty.channel.Channel;
 import net.kyori.adventure.text.Component;
 import net.minecraft.network.ConnectionProtocol;
@@ -171,7 +172,10 @@ public final class User {
             return packet;
         }
         try {
-            Method getPacket = packet.getClass().getMethod("getPacket");
+            Method getPacket = ReflectionUtils.getMethodCached(packet.getClass(), "getPacket");
+            if (getPacket == null) {
+                return packet;
+            }
             Object unwrapped = getPacket.invoke(packet);
             if (unwrapped != null) {
                 return unwrapped;

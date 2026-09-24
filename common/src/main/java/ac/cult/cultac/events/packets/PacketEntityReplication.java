@@ -564,23 +564,7 @@ public class PacketEntityReplication extends CultProcessor implements CheckListe
     }
 
     private static TeleportEntityData readTeleportEntity(Packet<?> packet) {
-        try {
-            packet.getClass().getMethod("change");
-            Object value = NmsPacketUtil.invokeNoArg(packet, "change");
-            TeleportChange change = new TeleportChange(
-                    (Vec3) NmsPacketUtil.invokeNoArg(value, "position"),
-                    (Vec3) NmsPacketUtil.invokeNoArg(value, "deltaMovement"),
-                    NmsPacketUtil.floatValue(value, "yRot"),
-                    NmsPacketUtil.floatValue(value, "xRot")
-            );
-            Object relatives = NmsPacketUtil.invokeNoArg(packet, "relatives");
-            return new TeleportEntityData(
-                    NmsPacketUtil.intValue(packet, "id"),
-                    change,
-                    new RelativeFlag(relativeMask((Iterable<?>) relatives)),
-                    NmsPacketUtil.booleanValue(packet, "onGround")
-            );
-        } catch (NoSuchMethodException ignored) {
+        if (!NmsPacketUtil.hasNoArgMethod(packet, "change")) {
             TeleportChange change = new TeleportChange(
                     new Vec3(
                             ((Number) NmsPacketUtil.invokeNoArg(packet, "getX")).doubleValue(),
@@ -598,6 +582,21 @@ public class PacketEntityReplication extends CultProcessor implements CheckListe
                     NmsPacketUtil.booleanValue(packet, "isOnGround")
             );
         }
+
+        Object value = NmsPacketUtil.invokeNoArg(packet, "change");
+        TeleportChange change = new TeleportChange(
+                (Vec3) NmsPacketUtil.invokeNoArg(value, "position"),
+                (Vec3) NmsPacketUtil.invokeNoArg(value, "deltaMovement"),
+                NmsPacketUtil.floatValue(value, "yRot"),
+                NmsPacketUtil.floatValue(value, "xRot")
+        );
+        Object relatives = NmsPacketUtil.invokeNoArg(packet, "relatives");
+        return new TeleportEntityData(
+                NmsPacketUtil.intValue(packet, "id"),
+                change,
+                new RelativeFlag(relativeMask((Iterable<?>) relatives)),
+                NmsPacketUtil.booleanValue(packet, "onGround")
+        );
     }
 
     private static int relativeMask(Iterable<?> relatives) {
@@ -759,14 +758,12 @@ public class PacketEntityReplication extends CultProcessor implements CheckListe
     private void handleEntityPositionSync(PacketSendEvent event, Packet<?> packet) {
         Object change;
         EntityPositionPath path;
-        try {
-            change = packet.getClass().getMethod("values").invoke(packet);
+        if (NmsPacketUtil.hasNoArgMethod(packet, "values")) {
+            change = NmsPacketUtil.invokeNoArg(packet, "values");
             path = EntityPositionPath.linear((Vec3) NmsPacketUtil.invokeNoArg(change, "position"));
-        } catch (NoSuchMethodException rc1) {
+        } else {
             change = packet;
             path = EntityPositionPath.fromNative(NmsPacketUtil.invokeNoArg(packet, "position"));
-        } catch (ReflectiveOperationException failure) {
-            throw new IllegalStateException("Unable to read entity position sync", failure);
         }
         handleMoveEntity(event, EntityMovement.positionSyncPacket(NmsPacketUtil.intValue(packet, "id"), path,
                 new EntityRotation(NmsPacketUtil.floatValue(change, "yRot"), NmsPacketUtil.floatValue(change, "xRot")),

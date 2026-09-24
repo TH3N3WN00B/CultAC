@@ -7,6 +7,7 @@ import ac.cult.cultac.utils.latency.CompensatedWorld.ClientboundDimensionData;
 import ac.cult.cultac.utils.latency.CompensatedWorld.CachedSection;
 import ac.cult.cultac.utils.latency.CompensatedGeysers;
 import ac.cult.cultac.utils.latency.CompensatedWorld.CachedChunk;
+import ac.cult.cultac.utils.reflection.ReflectionUtils;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.RegistryAccess;
@@ -67,15 +68,20 @@ public class PacketWorldReaderTwentySix extends BasePacketWorldReader {
     private static void forEachBlockEntity(net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData payload,
                                            int x, int z,
                                            net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput output) {
+        Class<?> payloadClass = payload.getClass();
+        Method forEachMethod = ReflectionUtils.getMethodCached(payloadClass, "forEachBlockEntityTag",
+                int.class, int.class, net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput.class);
         try {
-            try {
-                payload.getClass().getMethod("forEachBlockEntityTag", int.class, int.class,
-                        net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput.class)
-                        .invoke(payload, x, z, output);
-            } catch (NoSuchMethodException legacy) {
-                ((java.util.function.Consumer<net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput>)
-                        payload.getClass().getMethod("getBlockEntitiesTagsConsumer", int.class, int.class).invoke(payload, x, z)).accept(output);
+            if (forEachMethod != null) {
+                forEachMethod.invoke(payload, x, z, output);
+                return;
             }
+            Method legacyMethod = ReflectionUtils.getMethodCached(payloadClass, "getBlockEntitiesTagsConsumer", int.class, int.class);
+            if (legacyMethod == null) {
+                throw new IllegalStateException("Unable to read chunk block entities");
+            }
+            Object consumer = legacyMethod.invoke(payload, x, z);
+            ((java.util.function.Consumer<net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput>) consumer).accept(output);
         } catch (ReflectiveOperationException failure) {
             throw new IllegalStateException("Unable to read chunk block entities", failure);
         }

@@ -13,6 +13,7 @@ import ac.cult.cultac.network.packet.PreservedClientboundBundlePacket;
 import ac.cult.cultac.network.packet.LegacyViaInputBridge;
 import ac.cult.cultac.network.protocol.util.viaversion.ViaVersionUtil;
 import ac.cult.cultac.utils.anticheat.LogUtil;
+import ac.cult.cultac.utils.reflection.ReflectionUtils;
 import ac.cult.cultac.packet.PacketApi;
 import ac.cult.cultac.packet.PacketContext;
 import ac.cult.cultac.packet.PacketContextHandlerFunction;
@@ -903,8 +904,11 @@ public final class CultNetworkManager implements Listener {
         if (packet == null) {
             return null;
         }
+        Method getPacket = ReflectionUtils.getMethodCached(packet.getClass(), "getPacket");
+        if (getPacket == null) {
+            return null;
+        }
         try {
-            Method getPacket = packet.getClass().getMethod("getPacket");
             Object candidate = getPacket.invoke(packet);
             return candidate instanceof Packet<?> nmsPacket ? nmsPacket : null;
         } catch (ReflectiveOperationException ignored) {
@@ -963,8 +967,12 @@ public final class CultNetworkManager implements Listener {
             return packet;
         }
 
+        Method getPacket = ReflectionUtils.getMethodCached(wrapper.getClass(), "getPacket");
+        if (getPacket == null) {
+            return packet;
+        }
+
         try {
-            Method getPacket = wrapper.getClass().getMethod("getPacket");
             Object candidate = getPacket.invoke(wrapper);
             return candidate instanceof Packet<?> nmsPacket ? nmsPacket : packet;
         } catch (ReflectiveOperationException ignored) {

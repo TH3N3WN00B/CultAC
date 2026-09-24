@@ -24,7 +24,7 @@ env:
 
 jobs:
   smoketest:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'CultAC/CultAC'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 

@@ -140,6 +140,7 @@ jobs:
                   if-no-files-found: error
 
             - name: Upload Fabric Artifact
+              if: hashFiles('fabric/build.gradle.kts') != ''
               uses: actions/upload-artifact@v6
               with:
                   name: cultac-fabric
@@ -252,7 +253,7 @@ jobs:
                   } >> "$GITHUB_OUTPUT"
 
             - name: Publish Fabric to Modrinth
-              if: ${{ inputs.publish-artifacts == true && env.MODRINTH_ID != '' && env.MODRINTH_TOKEN != '' }}
+              if: ${{ inputs.publish-artifacts == true && env.MODRINTH_ID != '' && env.MODRINTH_TOKEN != '' && hashFiles('fabric/build.gradle.kts') != '' }}
               uses: Kir-Antipov/mc-publish@v3.3
               with:
                   modrinth-id: ${{ secrets.MODRINTH_ID }}
